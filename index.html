@@ -630,6 +630,27 @@ function getCtx(){
   return audioCtx;
 }
 
+/* iOS Safari는 AudioContext가 사용자 제스처(터치) 안에서 "무음 버퍼를 한 번
+   재생"해야 완전히 깨어난다 — resume()만으로는 소리가 안 나는 기기가 있다.
+   화면 어디든 처음 터치/클릭하는 순간 한 번만 실행해서 미리 깨워둔다. */
+let audioUnlocked = false;
+function unlockAudioForIOS(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  const ctx = getCtx();
+  const buffer = ctx.createBuffer(1, 1, 22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(ctx.destination);
+  src.start(0);
+  document.removeEventListener('touchend', unlockAudioForIOS);
+  document.removeEventListener('pointerdown', unlockAudioForIOS);
+  document.removeEventListener('click', unlockAudioForIOS);
+}
+document.addEventListener('touchend', unlockAudioForIOS, { passive:true });
+document.addEventListener('pointerdown', unlockAudioForIOS);
+document.addEventListener('click', unlockAudioForIOS);
+
 /* returns the source nodes created, so callers can stop() them early */
 function playWoodblock(ctx, time, accent){
   const freq = accent ? 1500 : 1150;
